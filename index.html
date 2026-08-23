@@ -14,6 +14,9 @@
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
+  <!-- A-Frame Extras: animation-mixer -->
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
+
   <!-- MindAR -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
@@ -74,9 +77,9 @@
   >
 
 
-    <!-- =========================
+    <!-- =====================================
          CAMERA
-    ========================== -->
+    ====================================== -->
 
     <a-camera
       position="0 0 0"
@@ -85,9 +88,9 @@
 
 
 
-    <!-- =========================
-         LIGHTS
-    ========================== -->
+    <!-- =====================================
+         LIGHTING
+    ====================================== -->
 
     <a-entity
       light="
@@ -107,30 +110,32 @@
 
 
 
-    <!-- =========================
+    <!-- =====================================
          IMAGE TARGET
-    ========================== -->
+    ====================================== -->
 
     <a-entity
-      id="Target"
+      id="elkTarget"
       mindar-image-target="targetIndex: 0"
     >
 
 
-      <!-- =========================
-           3D MODEL
-      ========================== -->
+      <!-- =================================
+           ELK MODEL
+      ================================== -->
 
       <a-entity
-        id=""
+        id="elk"
 
-        gltf-model="url(./elk.glb)"
+        gltf-model="url(./elk2.glb)"
 
-        position="0 0 0"
+        position="0 0 0.1"
 
         rotation="0 0 0"
 
-        scale="0.01 0.01 0.01">
+        scale="1 1 1"
+
+        visible="true">
       </a-entity>
 
 
@@ -144,66 +149,180 @@
 
     const scene = document.querySelector("#scene");
     const target = document.querySelector("#elkTarget");
-    const model = document.querySelector("#elk");
+    const elk = document.querySelector("#elk");
+
+    let modelLoaded = false;
 
 
-    // =========================
-    // SCENE READY
-    // =========================
+    // =====================================
+    // SCENE LOADED
+    // =====================================
 
     scene.addEventListener("loaded", () => {
 
-      console.log("A-FRAME SCENE READY");
+      console.log("✅ A-FRAME SCENE READY");
 
     });
 
 
 
-    // =========================
-    // MODEL LOADED
-    // =========================
+    // =====================================
+    // GLB LOADED
+    // =====================================
 
-    model.addEventListener("model-loaded", () => {
+    elk.addEventListener("model-loaded", () => {
 
-      console.log("MODEL LOADED");
+      console.log("✅ ELK GLB LOADED");
+
+      modelLoaded = true;
+
+
+      const object = elk.getObject3D("mesh");
+
+      if (!object) {
+
+        console.error("❌ NO ELK MESH FOUND");
+
+        return;
+
+      }
+
+
+      // -------------------------------------
+      // Disable frustum culling
+      // Useful for animated / skinned meshes
+      // -------------------------------------
+
+      object.traverse((node) => {
+
+        if (node.isMesh || node.isSkinnedMesh) {
+
+          node.frustumCulled = false;
+
+        }
+
+
+        // -----------------------------------
+        // Force double-sided materials
+        // Useful during AR debugging
+        // -----------------------------------
+
+        if (node.material) {
+
+          const materials = Array.isArray(node.material)
+            ? node.material
+            : [node.material];
+
+
+          materials.forEach((material) => {
+
+            material.side = THREE.DoubleSide;
+            material.needsUpdate = true;
+
+          });
+
+        }
+
+      });
+
+
+      console.log("✅ ELK MESH READY");
 
     });
 
 
 
-    // =========================
+    // =====================================
     // MODEL ERROR
-    // =========================
+    // =====================================
 
-    model.addEventListener("model-error", (event) => {
+    elk.addEventListener("model-error", (event) => {
 
-      console.error("MODEL LOAD ERROR:", event);
+      console.error(
+        "❌ ELK GLB LOAD ERROR:",
+        event
+      );
 
     });
 
 
 
-    // =========================
+    // =====================================
     // TARGET FOUND
-    // =========================
+    // =====================================
 
     target.addEventListener("targetFound", () => {
 
-      console.log("TARGET FOUND");
+      console.log("✅ TARGET FOUND");
 
-      model.setAttribute("visible", true);
+
+      if (!modelLoaded) {
+
+        console.log("⏳ Waiting for model...");
+
+        return;
+
+      }
+
+
+      /*
+        Remove animation-mixer first.
+
+        This guarantees that when the target
+        is found again, the animation starts
+        again from frame 0.
+      */
+
+      elk.removeAttribute("animation-mixer");
+
+
+      requestAnimationFrame(() => {
+
+        elk.setAttribute(
+          "animation-mixer",
+
+          {
+            clip: "*",
+            loop: "repeat",
+            repetitions: Infinity,
+            timeScale: 1
+          }
+
+        );
+
+
+        console.log(
+          "▶ ELK ANIMATION STARTED"
+        );
+
+      });
 
     });
 
 
 
-    // =========================
+    // =====================================
     // TARGET LOST
-    // =========================
+    // =====================================
 
     target.addEventListener("targetLost", () => {
 
-      console.log("TARGET LOST");
+      console.log("⚠️ TARGET LOST");
+
+
+      /*
+        Stop animation while the marker
+        is not being tracked.
+      */
+
+      elk.removeAttribute(
+        "animation-mixer"
+      );
+
+
+      console.log(
+        "⏹ ELK ANIMATION STOPPED"
+      );
 
     });
 
