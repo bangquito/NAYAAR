@@ -9,7 +9,7 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>ELK AR</title>
+  <title>MindAR Debug</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -25,30 +25,43 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #000;
+      background: black;
     }
 
-    body {
+    #debug {
       position: fixed;
-    }
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 9999;
 
-    a-scene {
-      position: absolute;
-      width: 100%;
-      height: 100%;
+      padding: 10px;
+
+      color: lime;
+      background: rgba(0, 0, 0, 0.75);
+
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.5;
+
+      pointer-events: none;
     }
 
     .a-enter-vr {
       display: none !important;
     }
   </style>
-
 </head>
-
 
 <body>
 
+  <div id="debug">
+    Starting...
+  </div>
+
   <a-scene
+    id="scene"
+
     mindar-image="
       imageTargetSrc: ./targets.mind;
       autoStart: true;
@@ -56,22 +69,19 @@
       uiScanning: true;
       uiError: true;
     "
+
+    color-space="sRGB"
+
+    renderer="
+      colorManagement: true;
+      physicallyCorrectLights: true;
+      antialias: true;
+    "
+
     embedded
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false"
-    renderer="colorManagement: true;"
   >
-
-    <!-- MODEL -->
-    <a-assets>
-
-      <a-asset-item
-        id="elkAsset"
-        src="./tree.glb">
-      </a-asset-item>
-
-    </a-assets>
-
 
     <!-- CAMERA -->
     <a-camera
@@ -80,19 +90,50 @@
     </a-camera>
 
 
-    <!-- TARGET -->
+    <!-- LIGHTING -->
     <a-entity
-      id="elkTarget"
+      light="
+        type: ambient;
+        intensity: 1.5;
+      ">
+    </a-entity>
+
+    <a-entity
+      light="
+        type: directional;
+        intensity: 1;
+      "
+      position="1 2 1">
+    </a-entity>
+
+
+    <!-- IMAGE TARGET -->
+    <a-entity
+      id="target"
       mindar-image-target="targetIndex: 0"
     >
 
-      <a-gltf-model
-        id="elk"
-        src="#elkAsset"
-        position="0 0 0"
+      <!-- DEBUG BOX -->
+      <a-box
+        id="debugBox"
+        position="0 0 0.15"
+        scale="0.25 0.25 0.25"
+        color="red">
+      </a-box>
+
+
+      <!-- MODEL -->
+      <a-entity
+        id="model"
+
+        gltf-model="url(./tree.glb)"
+
+        position="0 0 0.1"
+
         rotation="0 0 0"
-        scale="0.1 0.1 0.1">
-      </a-gltf-model>
+
+        scale="0.01 0.01 0.01">
+      </a-entity>
 
     </a-entity>
 
@@ -100,30 +141,142 @@
 
 
   <script>
+    const debug = document.querySelector("#debug");
 
-    const target = document.querySelector("#elkTarget");
+    const scene = document.querySelector("#scene");
+    const target = document.querySelector("#target");
+    const model = document.querySelector("#model");
+
+
+    function log(message) {
+      console.log(message);
+
+      debug.innerHTML += "<br>" + message;
+    }
+
+
+    // -------------------------
+    // SCENE
+    // -------------------------
+
+    scene.addEventListener("loaded", () => {
+      log("✅ A-FRAME SCENE LOADED");
+    });
+
+
+    // -------------------------
+    // TARGET
+    // -------------------------
 
     target.addEventListener("targetFound", () => {
-
-      console.log("TARGET FOUND");
-
-      setTimeout(() => {
-
-        const model = document.querySelector("#elk");
-
-        // Animation will be added later
-
-        console.log("ELK READY");
-
-      }, 1000);
-
+      log("✅ TARGET FOUND");
     });
+
 
     target.addEventListener("targetLost", () => {
+      log("⚠️ TARGET LOST");
+    });
 
-      console.log("TARGET LOST");
+
+    // -------------------------
+    // GLB
+    // -------------------------
+
+    model.addEventListener("model-loaded", () => {
+
+      log("✅ TREE.GLB LOADED");
+
+      const object = model.getObject3D("mesh");
+
+      if (object) {
+
+        log("✅ THREE.JS MESH EXISTS");
+
+        const box = new THREE.Box3().setFromObject(object);
+
+        const size = new THREE.Vector3();
+
+        box.getSize(size);
+
+        log(
+          "MODEL SIZE: " +
+          size.x.toFixed(2) + ", " +
+          size.y.toFixed(2) + ", " +
+          size.z.toFixed(2)
+        );
+
+      } else {
+
+        log("❌ NO THREE.JS MESH");
+
+      }
 
     });
+
+
+    model.addEventListener("model-error", (event) => {
+
+      log("❌ TREE.GLB MODEL ERROR");
+
+      console.error(event);
+
+    });
+
+
+    // -------------------------
+    // CHECK FILE URL
+    // -------------------------
+
+    fetch("./tree.glb")
+      .then(response => {
+
+        log("tree.glb HTTP: " + response.status);
+
+        log(
+          "tree.glb TYPE: " +
+          response.headers.get("content-type")
+        );
+
+        return response.blob();
+
+      })
+
+      .then(blob => {
+
+        log(
+          "tree.glb SIZE: " +
+          Math.round(blob.size / 1024) +
+          " KB"
+        );
+
+      })
+
+      .catch(error => {
+
+        log("❌ tree.glb FETCH FAILED");
+
+        console.error(error);
+
+      });
+
+
+    fetch("./targets.mind")
+      .then(response => {
+
+        log(
+          "targets.mind HTTP: " +
+          response.status
+        );
+
+      })
+
+      .catch(error => {
+
+        log("❌ targets.mind FETCH FAILED");
+
+        console.error(error);
+
+      });
 
   </script>
 
