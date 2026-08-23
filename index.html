@@ -14,9 +14,6 @@
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
-  <!-- A-Frame Extras: animation-mixer -->
-  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.1/dist/aframe-extras.min.js"></script>
-
   <!-- MindAR -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
@@ -31,12 +28,16 @@
       background: #000;
     }
 
+    body {
+      position: fixed;
+    }
+
     a-scene {
+      position: absolute;
       width: 100%;
       height: 100%;
     }
 
-    /* Hide A-Frame VR button */
     .a-enter-vr {
       display: none !important;
     }
@@ -51,129 +52,76 @@
     mindar-image="
       imageTargetSrc: ./targets.mind;
       autoStart: true;
-      uiLoading: yes;
-      uiScanning: yes;
-      uiError: yes;
+      uiLoading: true;
+      uiScanning: true;
+      uiError: true;
     "
-
     embedded
-
-    renderer="
-      colorManagement: true;
-      physicallyCorrectLights;
-    "
-
     vr-mode-ui="enabled: false"
-
     device-orientation-permission-ui="enabled: false"
+    renderer="colorManagement: true;"
   >
 
-
-    <!-- =========================
-         ASSETS
-    ========================== -->
-
+    <!-- MODEL -->
     <a-assets>
 
       <a-asset-item
-        id="elkModelAsset"
+        id="elkAsset"
         src="./elk.glb">
       </a-asset-item>
 
     </a-assets>
 
 
-    <!-- =========================
-         CAMERA
-    ========================== -->
-
+    <!-- CAMERA -->
     <a-camera
       position="0 0 0"
       look-controls="enabled: false">
     </a-camera>
 
 
-    <!-- =========================
-         IMAGE TARGET
-         targets.mind target #0
-    ========================== -->
-
+    <!-- TARGET -->
     <a-entity
       id="elkTarget"
       mindar-image-target="targetIndex: 0"
     >
 
       <a-gltf-model
-        id="elkModel"
-        src="#elkModelAsset"
-
-        position="0 0 0.1"
-
+        id="elk"
+        src="#elkAsset"
+        position="0 0 0"
         rotation="0 0 0"
-
-        scale="1 1 1"
-
-        animation-mixer="
-          clip: *;
-          loop: repeat;
-          autoplay: false;
-        "
-      >
+        scale="1 1 1">
       </a-gltf-model>
 
     </a-entity>
 
-
   </a-scene>
 
-
-  <!-- =========================
-       AR LOGIC
-  ========================== -->
 
   <script>
 
     const target = document.querySelector("#elkTarget");
-    const model = document.querySelector("#elkModel");
 
-    let animationTimer = null;
-
-
-    // Target detected
     target.addEventListener("targetFound", () => {
 
-      console.log("ELK target found");
+      console.log("TARGET FOUND");
 
-      // Clear previous timer
-      clearTimeout(animationTimer);
+      setTimeout(() => {
 
-      // Wait 1 second before starting animation
-      animationTimer = setTimeout(() => {
+        const model = document.querySelector("#elk");
 
-        console.log("Starting ELK animation");
+        // Animation will be added later
 
-        model.setAttribute(
-          "animation-mixer",
-          "clip: *; loop: repeat; autoplay: true;"
-        );
+        console.log("ELK READY");
 
       }, 1000);
 
     });
 
-
-    // Target lost
     target.addEventListener("targetLost", () => {
 
-      console.log("ELK target lost");
-
-      clearTimeout(animationTimer);
-
-      // Stop animation
-      model.setAttribute(
-        "animation-mixer",
-        "clip: *; loop: repeat; autoplay: false;"
-      );
+      console.log("TARGET LOST");
 
     });
 
