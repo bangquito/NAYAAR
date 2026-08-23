@@ -9,7 +9,7 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>MindAR Debug</title>
+  <title>ELK AR</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -25,26 +25,17 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: black;
+      background: #000;
     }
 
-    #debug {
+    body {
       position: fixed;
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      z-index: 9999;
+    }
 
-      padding: 10px;
-
-      color: lime;
-      background: rgba(0, 0, 0, 0.75);
-
-      font-family: monospace;
-      font-size: 13px;
-      line-height: 1.5;
-
-      pointer-events: none;
+    a-scene {
+      position: absolute;
+      width: 100%;
+      height: 100%;
     }
 
     .a-enter-vr {
@@ -53,11 +44,8 @@
   </style>
 </head>
 
-<body>
 
-  <div id="debug">
-    Starting...
-  </div>
+<body>
 
   <a-scene
     id="scene"
@@ -70,6 +58,8 @@
       uiError: true;
     "
 
+    embedded
+
     color-space="sRGB"
 
     renderer="
@@ -78,25 +68,34 @@
       antialias: true;
     "
 
-    embedded
     vr-mode-ui="enabled: false"
+
     device-orientation-permission-ui="enabled: false"
   >
 
-    <!-- CAMERA -->
+
+    <!-- =========================
+         CAMERA
+    ========================== -->
+
     <a-camera
       position="0 0 0"
       look-controls="enabled: false">
     </a-camera>
 
 
-    <!-- LIGHTING -->
+
+    <!-- =========================
+         LIGHTS
+    ========================== -->
+
     <a-entity
       light="
         type: ambient;
         intensity: 1.5;
       ">
     </a-entity>
+
 
     <a-entity
       light="
@@ -107,26 +106,25 @@
     </a-entity>
 
 
-    <!-- IMAGE TARGET -->
+
+    <!-- =========================
+         IMAGE TARGET
+    ========================== -->
+
     <a-entity
-      id="target"
+      id="elkTarget"
       mindar-image-target="targetIndex: 0"
     >
 
-      <!-- DEBUG BOX -->
-      <a-box
-        id="debugBox"
-        position="0 0 0.15"
-        scale="0.25 0.25 0.25"
-        color="red">
-      </a-box>
 
+      <!-- =========================
+           3D MODEL
+      ========================== -->
 
-      <!-- MODEL -->
       <a-entity
-        id="model"
+        id="elk"
 
-        gltf-model="url(./elk.glb)"
+        gltf-model="url(./tree.glb)"
 
         position="0 0 0.1"
 
@@ -135,148 +133,79 @@
         scale="0.01 0.01 0.01">
       </a-entity>
 
+
     </a-entity>
 
   </a-scene>
 
 
+
   <script>
-    const debug = document.querySelector("#debug");
 
     const scene = document.querySelector("#scene");
-    const target = document.querySelector("#target");
-    const model = document.querySelector("#model");
+    const target = document.querySelector("#elkTarget");
+    const model = document.querySelector("#elk");
 
 
-    function log(message) {
-      console.log(message);
-
-      debug.innerHTML += "<br>" + message;
-    }
-
-
-    // -------------------------
-    // SCENE
-    // -------------------------
+    // =========================
+    // SCENE READY
+    // =========================
 
     scene.addEventListener("loaded", () => {
-      log("✅ A-FRAME SCENE LOADED");
+
+      console.log("A-FRAME SCENE READY");
+
     });
 
 
-    // -------------------------
-    // TARGET
-    // -------------------------
 
-    target.addEventListener("targetFound", () => {
-      log("✅ TARGET FOUND");
-    });
-
-
-    target.addEventListener("targetLost", () => {
-      log("⚠️ TARGET LOST");
-    });
-
-
-    // -------------------------
-    // GLB
-    // -------------------------
+    // =========================
+    // MODEL LOADED
+    // =========================
 
     model.addEventListener("model-loaded", () => {
 
-      log("✅ TREE.GLB LOADED");
-
-      const object = model.getObject3D("mesh");
-
-      if (object) {
-
-        log("✅ THREE.JS MESH EXISTS");
-
-        const box = new THREE.Box3().setFromObject(object);
-
-        const size = new THREE.Vector3();
-
-        box.getSize(size);
-
-        log(
-          "MODEL SIZE: " +
-          size.x.toFixed(2) + ", " +
-          size.y.toFixed(2) + ", " +
-          size.z.toFixed(2)
-        );
-
-      } else {
-
-        log("❌ NO THREE.JS MESH");
-
-      }
+      console.log("MODEL LOADED");
 
     });
 
+
+
+    // =========================
+    // MODEL ERROR
+    // =========================
 
     model.addEventListener("model-error", (event) => {
 
-      log("❌ TREE.GLB MODEL ERROR");
-
-      console.error(event);
+      console.error("MODEL LOAD ERROR:", event);
 
     });
 
 
-    // -------------------------
-    // CHECK FILE URL
-    // -------------------------
 
-    fetch("./tree.glb")
-      .then(response => {
+    // =========================
+    // TARGET FOUND
+    // =========================
 
-        log("tree.glb HTTP: " + response.status);
+    target.addEventListener("targetFound", () => {
 
-        log(
-          "tree.glb TYPE: " +
-          response.headers.get("content-type")
-        );
+      console.log("TARGET FOUND");
 
-        return response.blob();
+      model.setAttribute("visible", true);
 
-      })
-
-      .then(blob => {
-
-        log(
-          "tree.glb SIZE: " +
-          Math.round(blob.size / 1024) +
-          " KB"
-        );
-
-      })
-
-      .catch(error => {
-
-        log("❌ tree.glb FETCH FAILED");
-
-        console.error(error);
-
-      });
+    });
 
 
-    fetch("./targets.mind")
-      .then(response => {
 
-        log(
-          "targets.mind HTTP: " +
-          response.status
-        );
+    // =========================
+    // TARGET LOST
+    // =========================
 
-      })
+    target.addEventListener("targetLost", () => {
 
-      .catch(error => {
+      console.log("TARGET LOST");
 
-        log("❌ targets.mind FETCH FAILED");
-
-        console.error(error);
-
-      });
+    });
 
   </script>
 
